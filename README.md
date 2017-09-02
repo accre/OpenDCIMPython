@@ -12,4 +12,4 @@ configuration file should have the following format:
     baseurl = https://opendcim.mydatacenter.com
     username = myuser
     password = SECRET
-
+    ssl_verify = True  # optional

@@ -15,8 +15,6 @@ from dcim.errors import (
 )
 
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 client_config = None
 
 
@@ -41,10 +39,12 @@ class DCIMClient(object):
 
     def _request(self, method, path, **kwargs):
         url = '{}/{}'.format(client_config['baseurl'], path)
+        if 'verify' not in kwargs and not client_config['ssl_verify']:
+            kwargs['verify'] = False
         return self.session.request(method, url, **kwargs)
 
     def _get(self, path, **kwargs):
-        return self._request('GET', path, verify=False, **kwargs)
+        return self._request('GET', path, **kwargs)
 
     def locate(self, device):
         """
@@ -82,13 +82,14 @@ class DCIMClient(object):
         }
 
 
-def configure(baseurl, username, password):
+def configure(baseurl, username, password, ssl_verify=True):
     """
     Set the OpenDCIM client configuration.
 
     :param str baseurl: base url for the OpenDCIM server
     :param str username: username to access the OpenDCIM server
     :param str password: password to access the OpenDCIM server
+    :param bool ssl_verify: Skip ssl certificate verification if set to False
     """
     global client_config
     client_config = {
@@ -96,6 +97,8 @@ def configure(baseurl, username, password):
         'username': username,
         'password': password
     }
+    if not ssl_verify:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def _maybe_set_configuration():
@@ -124,10 +127,15 @@ def _parse_config_file(filename):
     try:
         config = configparser.ConfigParser()
         config.read(filename)
+        ssl_verify = True
+        if config['dcim'].get('ssl_verify', '').lower() == 'false':
+            ssl_verify = False
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         return {
             'baseurl': config['dcim']['baseurl'],
             'username': config['dcim']['username'],
             'password': config['dcim']['password'],
+            'ssl_verify': ssl_verify
         }
     except Exception:
         raise DCIMConfigurationError()
