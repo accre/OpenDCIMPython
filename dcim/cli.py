@@ -17,6 +17,9 @@ def locate(args):
 
     print('{}: {}, {}, U{}'.format(args.device, result['datacenter'],
             result['cabinet'], result['position']))
+    if result['parent_devices'] and args.parents:
+        print('{}: parent devices: {}'.format(
+            args.device, result['parent_devices']))
     sys.exit(0)
 
 
@@ -26,6 +29,10 @@ def main():
 
     parser_locate = subparsers.add_parser('locate')
     parser_locate.add_argument('device', type=str)
+    parser_locate.add_argument(
+        '-p', '--parents',
+        action='store_true'
+    )
     parser_locate.set_defaults(func=locate)
 
     args = parser.parse_args()

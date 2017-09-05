@@ -48,13 +48,16 @@ class DCIMClient(object):
 
     def locate(self, device):
         """
-        Returns the datacenter, cabinet, and position of the specified device.
+        Returns the datacenter, cabinet, and rack position of the specified
+        device, as well as a list of parent devices.
+
         Note that if multiple devices share the same label, only the first
         device will be located.
 
         :param str device: Label of the device to be located
 
-        :returns: The datacenter, cabinet, and position of the device
+        :returns: The datacenter, cabinet, and rack position of the device,
+            and a list of parent devices.
         :rtype: dict
         """
         resp = self._get('api/v1/device', params={'Label': device})
@@ -64,6 +67,15 @@ class DCIMClient(object):
             raise DCIMNotFoundError(
                 'Device label {} was not found.'.format(device)
             ) from None
+
+        parents = []
+        while dev_info['ParentDevice']:
+            resp = self._get(
+                'api/v1/device/{}'.format(dev_info['ParentDevice'])
+            )
+            dev_info = resp.json()['device']
+            parents.append(dev_info['Label'])
+
         position = dev_info['Position']
 
         resp = self._get('api/v1/cabinet/{}'.format(dev_info['Cabinet']))
@@ -78,7 +90,8 @@ class DCIMClient(object):
         return {
             'datacenter': datacenter,
             'cabinet': location,
-            'position': position
+            'position': position,
+            'parent_devices': parents
         }
 
 
