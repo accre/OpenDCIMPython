@@ -5,7 +5,14 @@ import argparse
 import sys
 
 import dcim.api as api
-from dcim.errors import DCIMNotFoundError
+from dcim.errors import DCIMNotFoundError, DCIMAuthenticationError
+
+
+AUTH_ERROR_MSG = """\
+OpenDCIM server authentication failed. Check your .dcim.conf file or
+the system /etc/dcim.conf file to ensure that a valid OpenDCIM host
+url and credentials have been set.
+"""
 
 
 def locate(args):
@@ -36,7 +43,11 @@ def main():
     parser_locate.set_defaults(func=locate)
 
     args = parser.parse_args()
-    args.func(args)
+    try:
+        args.func(args)
+    except DCIMAuthenticationError:
+        print(AUTH_ERROR_MSG)
+        sys.exit(1)
 
 
 if __name__ == '__main__':

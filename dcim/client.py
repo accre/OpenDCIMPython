@@ -41,7 +41,14 @@ class DCIMClient(object):
         url = '{}/{}'.format(client_config['baseurl'], path)
         if 'verify' not in kwargs and not client_config['ssl_verify']:
             kwargs['verify'] = False
-        return self.session.request(method, url, **kwargs)
+
+        resp = self.session.request(method, url, **kwargs)
+        if resp.status_code == 401:
+            raise DCIMAuthenticationError(
+                'OpenDCIM authentication failed, server response: {}'
+                .format(resp.text)
+            )
+        return resp
 
     def _get(self, path, **kwargs):
         return self._request('GET', path, **kwargs)
