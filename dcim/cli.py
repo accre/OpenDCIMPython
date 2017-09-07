@@ -4,8 +4,9 @@ CLI entry point for the python OpenDCIM api
 import argparse
 import sys
 
-import dcim.api as api
+from dcim.client import DCIMClient
 from dcim.errors import DCIMNotFoundError, DCIMAuthenticationError
+from dcim.util import expand_brackets
 
 
 AUTH_ERROR_MSG = """\
@@ -16,18 +17,26 @@ url and credentials have been set.
 
 
 def locate(args):
-    try:
-        result = api.locate(args.device)
-    except DCIMNotFoundError:
-        print('Device label {} was not found.'.format(args.device))
-        sys.exit(1)
+    devices = expand_brackets(args.device)
+    error_count = 0
+    client = DCIMClient()
 
-    print('{}: {}, {}, U{}'.format(args.device, result['datacenter'],
-            result['cabinet'], result['position']))
-    if result['parent_devices'] and args.parents:
-        print('{}: parent devices: {}'.format(
-            args.device, result['parent_devices']))
-    sys.exit(0)
+    for device in devices:
+        try:
+            result = client.locate(device)
+            print('{}: {}, {}, U{}'.format(device, result['datacenter'],
+                    result['cabinet'], result['position']))
+            if result['parent_devices'] and args.parents:
+                print('{}: parent devices: {}'.format(
+                    device, result['parent_devices']))
+        except DCIMNotFoundError:
+            print('Device label {} was not found.'.format(device))
+            error_count += 1
+
+    if error_count:
+        sys.exit(1)
+    else:
+        sys.exit(0)
 
 
 def main():
