@@ -17,6 +17,20 @@ url and credentials have been set.
 
 
 def locate(args):
+    """
+    Prints the physical rack location of the specified device, i.e.
+    if invoked with ``dcim locate node24`` it will print the datacenter,
+    cabinet label, and cabinet position of the device. If the ``--parents``
+    option is present, enclosing chassis devices will be listed.
+
+    For devices labeled with consecutive numbers, i.e. node21, node22,
+    node23, the command can be invoked with a range in brackets
+    as ``dcim locate node[21-23]`` and will print the location of all
+    specified devices.
+
+    After printing, the function exits with return code 0 if all devices
+    were located or 1 otherwise.
+    """
     devices = expand_brackets(args.device)
     error_count = 0
     client = DCIMClient()
