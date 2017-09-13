@@ -53,6 +53,20 @@ def locate(args):
         sys.exit(0)
 
 
+def showrack(args):
+    """
+    Print an ASCII-art representation of the cabinet at the specified
+    location with the devices contained in each position.
+    """
+    try:
+        client = DCIMClient()
+        client.showrack(args.location, display=True)
+        sys.exit(0)
+    except DCIMNotFoundError:
+        print('No cabinet was found at {}.'.format(args.location))
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
@@ -64,6 +78,10 @@ def main():
         action='store_true'
     )
     parser_locate.set_defaults(func=locate)
+
+    parser_showrack = subparsers.add_parser('showrack')
+    parser_showrack.add_argument('location', type=str)
+    parser_showrack.set_defaults(func=showrack)
 
     args = parser.parse_args()
     try:
