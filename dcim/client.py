@@ -13,6 +13,7 @@ from dcim.errors import (
     DCIMNotFoundError,
     DCIMAuthenticationError
 )
+from dcim.util import draw_rack
 
 
 client_config = None
@@ -100,6 +101,61 @@ class DCIMClient(object):
             'position': position,
             'parent_devices': parents
         }
+
+    def showrack(self, location, display=False, width=72):
+        """
+        Return and optionally print to standard output an ASCII-art
+        representation of the Cabinet specified by the given location.
+
+        Note that if multiple cabinets share the same location only
+        the first cabinet found will be displayed.
+
+        :param str location: Location of the cabinet to be shown
+        :param bool display: Print results to stdout if True
+        :param int width: Width of the cabinet drawing in characters.
+
+        :returns: ASCII-art representation of the cabinet
+        :rtype: list(str)
+        """
+        resp = self._get('api/v1/cabinet', params={'Location': location})
+        try:
+            cabinet = resp.json()['cabinet'][0]
+        except IndexError:
+            raise DCIMNotFoundError(
+                'Cabinet at location {} was not found.'.format(location)
+            ) from None
+
+        height = int(cabinet['CabinetHeight'])
+        cabinet_id = cabinet['CabinetID']
+
+        resp = self._get('api/v1/device', params={'Cabinet': cabinet_id})
+        devices = resp.json()['device']
+        parents = [d for d in devices if not d['ParentDevice']]
+        labels = []
+        positions = []
+        heights = []
+
+        for dev in parents:
+            label = dev['Label']
+            positions.append(dev['Position'])
+            heights.append(dev['Height'])
+            children = [
+                d for d in devices if d['ParentDevice'] == dev['DeviceID']
+            ]
+            if children:
+                label += ' ('
+                label += ', '.join(child['Label'] for child in children)
+                label += ')'
+            labels.append(label)
+
+        return draw_rack(
+            height,
+            width=width - 8,
+            labels=labels,
+            positions=positions,
+            heights=heights,
+            display=display
+        )
 
 
 def configure(baseurl, username, password, ssl_verify=True):

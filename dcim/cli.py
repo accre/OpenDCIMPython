@@ -4,6 +4,7 @@ CLI entry point for the python OpenDCIM api
 import argparse
 import sys
 
+from dcim.api import showrack
 from dcim.client import DCIMClient
 from dcim.errors import DCIMNotFoundError, DCIMAuthenticationError
 from dcim.util import expand_brackets
@@ -53,6 +54,19 @@ def locate(args):
         sys.exit(0)
 
 
+def showrack(args):
+    """
+    Print an ASCII-art representation of the cabinet at the specified
+    location with the devices contained in each position.
+    """
+    try:
+        showrack(args.location, display=True)
+        sys.exit(0)
+    except DCIMNotFoundError:
+        print('No cabinet was found at {}.'.format(args.location))
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
@@ -64,6 +78,10 @@ def main():
         action='store_true'
     )
     parser_locate.set_defaults(func=locate)
+
+    parser_showrack = subparsers.add_parser('showrack')
+    parser_showrack.add_argument('location', type=str)
+    parser_showrack.set_defaults(func=showrack)
 
     args = parser.parse_args()
     try:
