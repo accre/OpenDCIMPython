@@ -22,8 +22,17 @@ client_config = None
 class DCIMClient(object):
     """
     OpenDCIM Client object to utilize requests.Session connection-pooling
+    and provide an interface to the OpenDCIM API with helper methods for
+    common tasks.
     """
-    def __init__(self):
+    def __init__(self, caching=False):
+        """
+        Set up a requests.Session client for OpenDCIM server communication.
+        Optionally cache GET requests.
+
+        :param bool caching: Cache the results of GET requests to the
+            server in memory if set to True
+        """
         _maybe_set_configuration()
 
         self.session = requests.Session()
@@ -31,6 +40,8 @@ class DCIMClient(object):
             client_config['username'],
             client_config['password']
         )
+        self.caching = caching
+        self.cache = {}
 
     def __enter__(self):
         return self
@@ -52,6 +63,19 @@ class DCIMClient(object):
         return resp
 
     def _get(self, path, **kwargs):
+        """
+        Perform a GET request with the given path or return result already
+        held in the cache. The cache is keyed using the path and possible
+        querystring arguments.
+        """
+        if self.caching:
+            key = (path, frozenset(kwargs.get('params', {}).items()))
+            if key in self.cache:
+                return self.cache[key]
+            else:
+                self.cache[key] = self._request('GET', path, **kwargs)
+                return self.cache[key]
+
         return self._request('GET', path, **kwargs)
 
     def locate(self, device):
