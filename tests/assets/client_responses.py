@@ -109,6 +109,35 @@ DEFAULT_DEVICE = {
     'v3SecurityLevel': 'noAuthNoPriv'
 }
 
+DEFAULT_MANUFACTURER = {
+    'GlobalID': '0',
+    'ManufacturerID': '1',
+    'Name': 'Ringo',
+    'SubscribeToUpdates': '0'
+}
+
+DEFAULT_TEMPLATE = {
+    'ChassisSlots': 0,
+    'CustomValues': [],
+    'DeviceType': 'Server',
+    'FrontPictureFile': 'ringo-r730-front.png',
+    'GlobalID': 1,
+    'Height': 1,
+    'KeepLocal': 0,
+    'ManufacturerID': 1,
+    'Model': 'PowerDrum R730',
+    'Notes': '',
+    'NumPorts': 5,
+    'PSCount': 2,
+    'RearChassisSlots': 0,
+    'RearPictureFile': 'ringo-r730-rear.png',
+    'SNMPVersion': '2c',
+    'ShareToRepo': 0,
+    'TemplateID': 1,
+    'Wattage': 400,
+    'Weight': 85
+}
+
 
 def populate_cache():
     """
@@ -118,6 +147,20 @@ def populate_cache():
     function for testing.
     """
     cache = {}
+
+    ringo = deepcopy(DEFAULT_MANUFACTURER)
+    r = construct_json_response(
+        {'error': False, 'errorcode': 200, 'manufacturer': [ringo]},
+        200
+    )
+    cache[('api/v1/manufacturer', frozenset({}.items()))] = r
+
+    r730 = deepcopy(DEFAULT_TEMPLATE)
+    r = construct_json_response(
+        {'error': False, 'errorcode': 200, 'template': r730},
+        200
+    )
+    cache[('api/v1/devicetemplate/1', frozenset({}.items()))] = r
 
     dcFoo101 = deepcopy(DEFAULT_DATACENTER)
     r = construct_json_response(
@@ -155,6 +198,7 @@ def populate_cache():
     node102['Height'] = 1
     node102['Label'] = 'node102'
     node102['Position'] = 2
+    node102['TemplateID'] = 0
     r = construct_json_response(
         {'error': False, 'errorcode': 200, 'device': [node102]},
         200
