@@ -33,7 +33,7 @@ def locate(args):
     """
     devices = expand_brackets(args.device)
     error_count = 0
-    client = DCIMClient()
+    client = DCIMClient(caching=True)
 
     for device in devices:
         try:
