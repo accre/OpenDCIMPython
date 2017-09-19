@@ -78,6 +78,21 @@ class DCIMClient(object):
 
         return self._request('GET', path, **kwargs)
 
+    def _get_device(self, device):
+        """
+        Return device information for a device by label.
+
+        Note that if multiple devices share the same label, only the first
+        device will be returned.
+        """
+        resp = self._get('api/v1/device', params={'Label': device})
+        try:
+            return resp.json()['device'][0]
+        except IndexError:
+            raise DCIMNotFoundError(
+                'Device label {} was not found.'.format(device)
+            ) from None
+
     def locate(self, device):
         """
         Returns the datacenter, cabinet, and rack position of the specified
@@ -92,13 +107,7 @@ class DCIMClient(object):
             and a list of parent devices.
         :rtype: dict
         """
-        resp = self._get('api/v1/device', params={'Label': device})
-        try:
-            dev_info = resp.json()['device'][0]
-        except IndexError:
-            raise DCIMNotFoundError(
-                'Device label {} was not found.'.format(device)
-            ) from None
+        dev_info = self._get_device(device)
 
         parents = []
         while dev_info['ParentDevice']:
@@ -113,7 +122,7 @@ class DCIMClient(object):
         resp = self._get('api/v1/cabinet/{}'.format(dev_info['Cabinet']))
         cab_info = resp.json()['cabinet'][0]
         location = cab_info['Location']
-        
+
         resp = self._get(
             'api/v1/datacenter/{}'.format(cab_info['DataCenterID'])
         )
@@ -126,7 +135,7 @@ class DCIMClient(object):
             'parent_devices': parents
         }
 
-    def showrack(self, location, display=False, width=72):
+    def showrack(self, location, display=False, width=72, devinfo=False):
         """
         Return and optionally print to standard output an ASCII-art
         representation of the Cabinet specified by the given location.
@@ -137,6 +146,7 @@ class DCIMClient(object):
         :param str location: Location of the cabinet to be shown
         :param bool display: Print results to stdout if True
         :param int width: Width of the cabinet drawing in characters.
+        :param str devinfo: Show make, model, and serial of device if True
 
         :returns: ASCII-art representation of the cabinet
         :rtype: list(str)
@@ -166,6 +176,14 @@ class DCIMClient(object):
             children = [
                 d for d in devices if d['ParentDevice'] == dev['DeviceID']
             ]
+            if devinfo:
+                info = self.model(dev['Label'], dev_info=dev)
+                if info['make'] is None:
+                    info['make'] = 'Unknown Model'
+                    info['model'] = ''
+                label += ' [{} {} SN: {}]'.format(
+                    info['make'], info['model'], info['serial']
+                )
             if children:
                 label += ' ('
                 label += ', '.join(child['Label'] for child in children)
@@ -180,6 +198,40 @@ class DCIMClient(object):
             heights=heights,
             display=display
         )
+
+    def model(self, device, dev_info=None):
+        """
+        Return a dict containing the make, model, and serial number
+        of the device given by label. If the device has no template
+        the make and model are given as None.
+
+        :param str device: label of the device to query
+        :param dict dev_info: Device information already retrieved from
+            the OpenDCIM. If None, the information will be fetched.
+
+        :returns: make, model, and serial for the device
+        :rtype: dict
+        """
+        if dev_info is None:
+            dev_info = self._get_device(device)
+        template = dev_info['TemplateID']
+        serial = dev_info['SerialNo']
+        if not template:
+            return {'make': None, 'model': None, 'serial': serial}
+
+        resp = self._get('api/v1/manufacturer')
+        makes = {
+            int(m['ManufacturerID']): m['Name']
+            for m in resp.json()['manufacturer']
+        }
+
+        resp = self._get('api/v1/devicetemplate/{}'.format(template))
+        template_info = resp.json()['template']
+        return {
+            'make': makes[int(template_info['ManufacturerID'])],
+            'model': template_info['Model'],
+            'serial': serial
+        }
 
 
 def configure(baseurl, username, password, ssl_verify=True):

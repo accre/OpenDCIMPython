@@ -53,14 +53,47 @@ def locate(args):
         sys.exit(0)
 
 
+def model(args):
+    """
+    Prints the make, model, and serial number of the specified device.
+
+    For devices labeled with consecutive numbers, i.e. node21, node22,
+    node23, the command can be invoked with a range in brackets
+    as ``dcim model node[21-23]`` and will print information about all
+    specified devices.
+
+    After printing, the function exits with return code 0 if all devices
+    were located or 1 otherwise.
+    """
+    devices = expand_brackets(args.device)
+    error_count = 0
+    client = DCIMClient(caching=True)
+
+    for device in devices:
+        try:
+            result = client.model(device)
+            print('{}: {} {} SN: {}'.format(device, result['make'],
+                    result['model'], result['serial']))
+        except DCIMNotFoundError:
+            print('Device label {} was not found.'.format(device))
+            error_count += 1
+
+    if error_count:
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
 def showrack(args):
     """
     Print an ASCII-art representation of the cabinet at the specified
     location with the devices contained in each position.
+
+    If the ``--model`` option is present, the make, model, and serial
+    number will be printed along with each device.
     """
     try:
-        client = DCIMClient()
-        client.showrack(args.location, display=True)
+        client = DCIMClient(caching=True)
+        client.showrack(args.location, display=True, devinfo=args.model)
         sys.exit(0)
     except DCIMNotFoundError:
         print('No cabinet was found at {}.'.format(args.location))
@@ -79,8 +112,16 @@ def main():
     )
     parser_locate.set_defaults(func=locate)
 
+    parser_model = subparsers.add_parser('model')
+    parser_model.add_argument('device', type=str)
+    parser_model.set_defaults(func=model)
+
     parser_showrack = subparsers.add_parser('showrack')
     parser_showrack.add_argument('location', type=str)
+    parser_showrack.add_argument(
+        '-m', '--model',
+        action='store_true'
+    )
     parser_showrack.set_defaults(func=showrack)
 
     args = parser.parse_args()

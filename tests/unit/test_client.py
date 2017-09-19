@@ -42,6 +42,27 @@ class TestClientLocate:
         assert client.locate('node103') == expected
 
 
+class TestClientModel:
+    """
+    Tests for the DCIMClient.model method
+    """
+    def test_no_template(self, client):
+        expected = {
+            'make': None,
+            'model': None,
+            'serial': 'ABCDEFGH'
+        }
+        assert client.model('node102') == expected
+
+    def test_template(self, client):
+        expected = {
+            'make': 'Ringo',
+            'model': 'PowerDrum R730',
+            'serial': 'ABCDEFGH'
+        }
+        assert client.model('node101') == expected
+
+
 class TestClientShowrack:
     """
     Tests for the client showrack function
