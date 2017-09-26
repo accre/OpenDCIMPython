@@ -6,6 +6,7 @@ import string
 
 
 BRACKETRANGE_RE = re.compile(r"\[([0-9]+-[0-9]+)\]")
+VALID_LABEL_RE = re.compile(r"^[a-z0-9-]*$")
 
 
 def expand_brackets(input_string):
@@ -87,6 +88,31 @@ def draw_rack(
             print(line)
 
     return drawing
+
+
+def normalize_label(raw_label):
+    """
+    Normalize a label (str) to a policy of only containing lowercase
+    letters (a-z), numbers, and ``-``. Remove leading or trailing
+    whitespace, lowercase letters, and replace internal whitespace,
+    underscores, dots, or colons  with a single ``-`` character
+    between letters. Return the resulting normalized label.
+
+    If the label cannot be normalized in this manner, raise a ValueError.
+
+    :param str raw_label: Device label to be normalized
+    :returns: Normalized label
+    """
+    label = raw_label.strip().lower()
+    label = re.sub(r"[\s\-_\.:]+", '-', label)
+
+    if not VALID_LABEL_RE.search(label):
+        raise ValueError(
+            'Label "{}" could not be normalized to contain only a-z, 0-9, '
+            'and "-" using the available rules.'.format(raw_label)
+        )
+
+    return label
 
 
 class DHCPDHostParser(dict):
