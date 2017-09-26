@@ -1,6 +1,7 @@
 Unreleased
 ==========
 
+- [NEW] Add dhcpd configuration file parser
 - [NEW] Add model command to show make, model, and serial of a device
 - [NEW] Add option to showrack to display make, model, and serial of each
         device.
