@@ -78,12 +78,16 @@ class DCIMClient(object):
 
         return self._request('GET', path, **kwargs)
 
-    def _get_device(self, device):
+    def get_device(self, device):
         """
         Return device information for a device by label.
 
         Note that if multiple devices share the same label, only the first
         device will be returned.
+
+        :param str device: Label of the device
+        :returns: Information about the device
+        :rtype: dict
         """
         resp = self._get('api/v1/device', params={'Label': device})
         try:
@@ -92,6 +96,31 @@ class DCIMClient(object):
             raise DCIMNotFoundError(
                 'Device label {} was not found.'.format(device)
             ) from None
+
+    def get_all_devices(self):
+        """
+        Return device information for all devices in OpenDCIM
+
+        :returns: Information about all devices
+        :rtype: list(dict)
+        """
+        resp = self._get('api/v1/device')
+        return resp.json()['device']
+
+    def update_device_by_id(self, device_id, updates):
+        """
+        Update fields of a device given by DeviceID with values
+        specifed in a dict.
+
+        :param str|int device_id: DCIM id of a device to update
+        :param dict updates: fields to be updated and new values
+        """
+        resp = self._request(
+            'POST',
+            'api/v1/device/{}'.format(device_id),
+            json=updates
+        )
+        resp.raise_for_status()
 
     def locate(self, device):
         """
@@ -107,7 +136,7 @@ class DCIMClient(object):
             and a list of parent devices.
         :rtype: dict
         """
-        dev_info = self._get_device(device)
+        dev_info = self.get_device(device)
 
         parents = []
         while dev_info['ParentDevice']:
@@ -213,7 +242,7 @@ class DCIMClient(object):
         :rtype: dict
         """
         if dev_info is None:
-            dev_info = self._get_device(device)
+            dev_info = self.get_device(device)
         template = dev_info['TemplateID']
         serial = dev_info['SerialNo']
         if not template:

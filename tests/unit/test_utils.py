@@ -4,9 +4,12 @@ Tests for the utils module
 from io import StringIO
 from textwrap import dedent
 
+import pytest
+
 from dcim.util import (
     expand_brackets,
     draw_rack,
+    normalize_label,
     DHCPDHostParser,
 )
 
@@ -120,6 +123,22 @@ class TestDrawRack:
         )
 
         assert expected == '\n'.join(result)
+
+
+class TestNormalizeLabel:
+    """
+    Tests for the normalize label function
+    """
+    def test_already_normalized(self):
+        assert normalize_label('x11-a22-b-9') == 'x11-a22-b-9'
+    def test_normalize_case1(self):
+        assert normalize_label('SM_29 H11') == 'sm-29-h11'
+    def test_normalize_case2(self):
+        assert normalize_label('ToR--G3 Dell X290.a') == 'tor-g3-dell-x290-a'
+    def test_not_normalizable(self):
+        with pytest.raises(ValueError) as cm:
+            normalize_label('G3**_+;')
+        assert 'G3**_+;' in str(cm.value)
 
 
 class TestDHCPDHostParser:
