@@ -107,6 +107,21 @@ class DCIMClient(object):
         resp = self._get('api/v1/device')
         return resp.json()['device']
 
+    def update_device_by_id(self, device_id, updates):
+        """
+        Update fields of a device given by DeviceID with values
+        specifed in a dict.
+
+        :param str|int device_id: DCIM id of a device to update
+        :param dict updates: fields to be updated and new values
+        """
+        resp = self._request(
+            'POST',
+            'api/v1/device/{}'.format(device_id),
+            json=updates
+        )
+        resp.raise_for_status()
+
     def locate(self, device):
         """
         Returns the datacenter, cabinet, and rack position of the specified
