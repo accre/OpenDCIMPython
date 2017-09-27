@@ -1,6 +1,10 @@
 Unreleased
 ==========
 
+- [NEW] Add device label audit class
+- [NEW] Add audits module
+- [NEW] Add get_device_by_id method to client
+- [NEW] Add device label normalization function
 - [NEW] Add dhcpd configuration file parser
 - [NEW] Add model command to show make, model, and serial of a device
 - [NEW] Add option to showrack to display make, model, and serial of each
