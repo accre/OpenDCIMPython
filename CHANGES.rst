@@ -1,6 +1,11 @@
 Unreleased
 ==========
 
+
+
+0.1.0 (2017-09-28)
+==================
+
 - [NEW] Add device label audit class
 - [NEW] Add audits module
 - [NEW] Add get_device_by_id method to client
