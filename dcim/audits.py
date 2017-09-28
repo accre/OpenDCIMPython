@@ -88,6 +88,9 @@ class AuditDeviceLabels(DCIMAudit):
                     .format(label, self.found_labels[label])
                 )
 
+        # clear found_labels for subsequent uses of the perform method
+        self.found_labels = defaultdict(list)
+
         return self._complete()
 
     def _check_device_label(self, device, repair=False):
