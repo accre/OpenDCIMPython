@@ -1,6 +1,7 @@
 Unreleased
 ==========
 
+- [IMPROVED] Look for config file in /usr/local/etc
 
 
 0.1.0 (2017-09-28)

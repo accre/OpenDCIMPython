@@ -294,6 +294,8 @@ def _maybe_set_configuration():
     conf_file = os.path.expanduser('~/.dcim.conf')
     if not os.path.isfile(conf_file):
         conf_file = '/etc/dcim.conf'
+    if not os.path.isfile(conf_file):
+        conf_file = '/usr/local/etc/dcim.conf'
 
     client_config = _parse_config_file(conf_file)
 
