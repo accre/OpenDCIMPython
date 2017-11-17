@@ -1,8 +1,11 @@
 Unreleased
 ==========
 
-- [IMPROVED] Look for config file in /usr/local/etc
 
+0.1.1 (2017-11-17)
+==================
+
+- [IMPROVED] Look for config file in /usr/local/etc
 
 0.1.0 (2017-09-28)
 ==================
