@@ -164,6 +164,49 @@ class DCIMClient(object):
             'parent_devices': parents
         }
 
+    def get_cabinet(self, location):
+        """
+        Return cabinet information for a cabinet by location.
+
+        Note that if multiple cabinets share the same label, only the first
+        cabinet will be returned.
+
+        :param str cabinet: Location of the cabinet
+        :returns: Information about the cabinet
+        :rtype: dict
+        """
+        resp = self._get('api/v1/cabinet', params={'Location': location})
+        try:
+            return resp.json()['cabinet'][0]
+        except IndexError:
+            raise DCIMNotFoundError(
+                'Cabinet at location {} was not found.'.format(location)
+            ) from None
+
+    def get_cabinet_devices(self, location, nochildren=False):
+        """
+        Return a list of device information dicts for a cabinet
+        specified by location.
+
+        Note that if multiple cabinets share the same label, only the first
+        cabinet will be returned.
+
+        :param str cabinet: Location of the cabinet
+        :param bool nochildren: If True, do not return devices with
+            a parent device (default False)
+
+        :returns: Information about all devices in the cabinet
+        :rtype: list(dict)
+        """ 
+        cabinet = self.get_cabinet(location)
+        cabinet_id = cabinet['CabinetID']
+
+        resp = self._get('api/v1/device', params={'Cabinet': cabinet_id})
+        devices = resp.json()['device']
+        if nochildren:
+            return [d for d in devices if not d['ParentDevice']]
+        return devices
+
     def showrack(self, location, display=False, width=72, devinfo=False):
         """
         Return and optionally print to standard output an ASCII-art
@@ -180,19 +223,11 @@ class DCIMClient(object):
         :returns: ASCII-art representation of the cabinet
         :rtype: list(str)
         """
-        resp = self._get('api/v1/cabinet', params={'Location': location})
-        try:
-            cabinet = resp.json()['cabinet'][0]
-        except IndexError:
-            raise DCIMNotFoundError(
-                'Cabinet at location {} was not found.'.format(location)
-            ) from None
-
+        cabinet = self.get_cabinet(location)
         height = int(cabinet['CabinetHeight'])
         cabinet_id = cabinet['CabinetID']
 
-        resp = self._get('api/v1/device', params={'Cabinet': cabinet_id})
-        devices = resp.json()['device']
+        devices = self.get_cabinet_devices(location)
         parents = [d for d in devices if not d['ParentDevice']]
         labels = []
         positions = []

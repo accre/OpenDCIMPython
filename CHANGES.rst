@@ -1,6 +1,7 @@
 Unreleased
 ==========
 
+- [NEW] Add get_cabinet and get_cabinet devices methods to the client
 
 0.1.1 (2017-11-17)
 ==================
