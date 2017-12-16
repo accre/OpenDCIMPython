@@ -7,6 +7,7 @@ import sys
 from dcim.client import DCIMClient
 from dcim.errors import DCIMNotFoundError, DCIMAuthenticationError
 from dcim.util import expand_brackets
+from dcim.__version__ import __version__
 
 
 AUTH_ERROR_MSG = """\
@@ -102,29 +103,47 @@ def showrack(args):
 
 def main():
     parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '-v', '--version',
+        action='store_true',
+        help="Print the version of OpenDCIMPython"
+    )
+
     subparsers = parser.add_subparsers()
 
-    parser_locate = subparsers.add_parser('locate')
+    parser_locate = subparsers.add_parser('locate', help=locate.__doc__)
     parser_locate.add_argument('device', type=str)
     parser_locate.add_argument(
         '-p', '--parents',
-        action='store_true'
+        action='store_true',
+        help='Show the enclosing chassis of the device, if any'
     )
     parser_locate.set_defaults(func=locate)
 
-    parser_model = subparsers.add_parser('model')
+    parser_model = subparsers.add_parser('model', help=model.__doc__)
     parser_model.add_argument('device', type=str)
     parser_model.set_defaults(func=model)
 
-    parser_showrack = subparsers.add_parser('showrack')
+    parser_showrack = subparsers.add_parser('showrack', help=showrack.__doc__)
     parser_showrack.add_argument('location', type=str)
     parser_showrack.add_argument(
         '-m', '--model',
-        action='store_true'
+        action='store_true',
+        help='Print the make, model, and SN of each device'
     )
     parser_showrack.set_defaults(func=showrack)
 
     args = parser.parse_args()
+
+    if args.version:
+        print('OpenDCIMPython version {0}'.format(__version__))
+        sys.exit(0)
+
+    if not hasattr(args, 'func') or not args.func:
+        parser.print_help()
+        sys.exit(1)
+
     try:
         args.func(args)
     except DCIMAuthenticationError:
