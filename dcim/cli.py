@@ -24,6 +24,9 @@ def locate(args):
     cabinet label, and cabinet position of the device. If the ``--parents``
     option is present, enclosing chassis devices will be listed.
 
+    To identify a device by serial number rather than label/host, use
+    the option ``--serial`` or ``-s``.
+
     For devices labeled with consecutive numbers, i.e. node21, node22,
     node23, the command can be invoked with a range in brackets
     as ``dcim locate node[21-23]`` and will print the location of all
@@ -32,20 +35,27 @@ def locate(args):
     After printing, the function exits with return code 0 if all devices
     were located or 1 otherwise.
     """
-    devices = expand_brackets(args.device)
+    if args.serial:
+        devices = [args.device]
+        identifier = 'SerialNo'
+    else:
+        devices = expand_brackets(args.device)
+        identifier = 'Label'
+
     error_count = 0
     client = DCIMClient(caching=True)
 
     for device in devices:
         try:
-            result = client.locate(device)
-            print('{}: {}, {}, U{}'.format(device, result['datacenter'],
+            result = client.locate(device, identifier=identifier)
+            print('{}: {}, {}, U{}'.format(
+                    result['label'], result['datacenter'],
                     result['cabinet'], result['position']))
             if result['parent_devices'] and args.parents:
                 print('{}: parent devices: {}'.format(
                     device, result['parent_devices']))
         except DCIMNotFoundError:
-            print('Device label {} was not found.'.format(device))
+            print('Device {} {} was not found.'.format(identifier, device))
             error_count += 1
 
     if error_count:
@@ -118,6 +128,11 @@ def main():
         '-p', '--parents',
         action='store_true',
         help='Show the enclosing chassis of the device, if any'
+    )
+    parser_locate.add_argument(
+        '-s', '--serial',
+        action='store_true',
+        help='Identify the device by serial number rather than hostname/label'
     )
     parser_locate.set_defaults(func=locate)
 

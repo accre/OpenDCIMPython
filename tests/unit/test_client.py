@@ -28,7 +28,8 @@ class TestClientLocate:
             'datacenter': 'Foo 101',
             'cabinet': 'A01',
             'position': 1,
-            'parent_devices': []
+            'parent_devices': [],
+            'label': 'node101'
         }
         assert client.locate('node101') == expected
 
@@ -37,7 +38,8 @@ class TestClientLocate:
             'datacenter': 'Foo 101',
             'cabinet': 'A01',
             'position': 4,
-            'parent_devices': ['chassisA']
+            'parent_devices': ['chassisA'],
+            'label': 'node103'
         }
         assert client.locate('node103') == expected
 
