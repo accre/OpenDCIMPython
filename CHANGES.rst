@@ -1,6 +1,7 @@
 Unreleased
 ==========
 
+- [NEW] Add --serial option to locate devices by SerialNo
 - [IMPROVED] Better CLI help messaging and version info
 
 0.2.0 (2017-12-14)

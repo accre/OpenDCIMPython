@@ -78,23 +78,25 @@ class DCIMClient(object):
 
         return self._request('GET', path, **kwargs)
 
-    def get_device(self, device):
+    def get_device(self, device, identifier='Label'):
         """
-        Return device information for a device by label.
+        Return device information for a device by label or other
+        identifier if specified.
 
         Note that if multiple devices share the same label, only the first
         device will be returned.
 
-        :param str device: Label of the device
+        :param str device: Label or other identifier of the device
+        :param str identifier: OpenDCIM field to use to identify the device.
         :returns: Information about the device
         :rtype: dict
         """
-        resp = self._get('api/v1/device', params={'Label': device})
+        resp = self._get('api/v1/device', params={identifier: device})
         try:
             return resp.json()['device'][0]
         except IndexError:
             raise DCIMNotFoundError(
-                'Device label {} was not found.'.format(device)
+                'Device {} {} was not found.'.format(identifier, device)
             ) from None
 
     def get_all_devices(self):
@@ -122,21 +124,24 @@ class DCIMClient(object):
         )
         resp.raise_for_status()
 
-    def locate(self, device):
+    def locate(self, device, identifier='Label'):
         """
         Returns the datacenter, cabinet, and rack position of the specified
         device, as well as a list of parent devices.
 
-        Note that if multiple devices share the same label, only the first
-        device will be located.
+        Note that if multiple devices share the same identifier, only the
+        first device will be located.
 
-        :param str device: Label of the device to be located
-
+        :param str device: Label or other identifier of the device
+            to be located
+        :param str identifier: Identifier, i.e. "Label" or "SerialNo"
+            for the device
         :returns: The datacenter, cabinet, and rack position of the device,
-            and a list of parent devices.
+            a list of parent devices, and device label
         :rtype: dict
         """
-        dev_info = self.get_device(device)
+        dev_info = self.get_device(device, identifier=identifier)
+        label = dev_info['Label']
 
         parents = []
         while dev_info['ParentDevice']:
@@ -161,7 +166,8 @@ class DCIMClient(object):
             'datacenter': datacenter,
             'cabinet': location,
             'position': position,
-            'parent_devices': parents
+            'parent_devices': parents,
+            'label': label
         }
 
     def get_cabinet(self, location):
