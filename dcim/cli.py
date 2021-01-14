@@ -168,6 +168,35 @@ def setstatus(args):
         sys.exit(0)
 
 
+def setowner(args):
+    """
+    Sets the departmental owner field of the specified device(s).
+
+    For devices labeled with consecutive numbers, i.e. node21, node22,
+    node23, the command can be invoked with a range in brackets
+    as ``dcim setstatus node[21-23] Provisioning`` and will set the status for
+    all specified devices.
+
+    After modifying, the function exits with return code 0 if all devices
+    were successfully modified or 1 otherwise.
+    """
+    devices = expand_hostlist(args.devices)
+    error_count = 0
+    client = DCIMClient()
+
+    for device in devices:
+        try:
+            result = client.set_device_owner(device, args.owner)
+        except DCIMNotFoundError:
+            print('Device label {} was not found.'.format(device))
+            error_count += 1
+
+    if error_count:
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
+
 def showrack(args):
     """
     Print an ASCII-art representation of the cabinet at the specified
@@ -227,6 +256,11 @@ def main():
     parser_setstatus.add_argument('devices', type=str)
     parser_setstatus.add_argument('status', type=str)
     parser_setstatus.set_defaults(func=setstatus)
+
+    parser_setowner = subparsers.add_parser('setowner', help=setowner.__doc__)
+    parser_setowner.add_argument('devices', type=str)
+    parser_setowner.add_argument('owner', type=str)
+    parser_setowner.set_defaults(func=setowner)
 
     parser_showrack = subparsers.add_parser('showrack', help=showrack.__doc__)
     parser_showrack.add_argument('location', type=str)

@@ -5,6 +5,7 @@ Unreleased
 - [NEW] Add status command for setting status
 - [IMPROVED] Move tox versions to python 3.6, 3.7, 3.8
 - [NEW] Add set status command
+- [NEW] Add set (departmental) owner command
 
 0.2.1 (2018-02-19)
 ==================

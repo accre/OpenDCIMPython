@@ -367,6 +367,30 @@ class DCIMClient(object):
             data={'Status': status}
         )
 
+    def set_device_owner(self, device, owner):
+        """
+        Change the departmental owner of a device identified by its label.
+        This function will drop the cache as devices will be changed.
+
+        :param str device: label of the device
+        :param str owner: New owner for the device
+        """
+        did = self.get_device(device)['DeviceID']
+        resp = self._get('api/v1/department')
+        depts = {
+            m['Name']: int(m['DeptID'])
+            for m in resp.json()['department']
+        }
+        depts['Unassigned'] = 0
+        if owner not in depts:
+            raise ValueError(f'Departmental owner {owner} not found')
+        self._drop_cache()
+        self._request(
+            'POST',
+            'api/v1/device/{}'.format(did),
+            data={'Owner': depts[owner]}
+        )
+
 
 def configure(baseurl, username, password, ssl_verify=True):
     """
