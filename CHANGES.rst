@@ -1,8 +1,11 @@
 Unreleased
 ==========
 
+0.3.0 (2021-01-14)
+==================
+
 - [IMPROVED] Accept slurm-style host lists
-- [NEW] Add status command for setting status
+- [NEW] Add status command for displaying status
 - [IMPROVED] Move tox versions to python 3.6, 3.7, 3.8
 - [NEW] Add set status command
 - [NEW] Add set (departmental) owner command
