@@ -351,6 +351,22 @@ class DCIMClient(object):
             data={'Label': new_label}
         )
 
+    def set_device_status(self, device, status):
+        """
+        Change the status of a device identified by its label.
+        This function will drop the cache as devices will be changed.
+
+        :param str device: label of the device
+        :param str status: New status for the device
+        """
+        did = self.get_device(device)['DeviceID']
+        self._drop_cache()
+        self._request(
+            'POST',
+            'api/v1/device/{}'.format(did),
+            data={'Status': status}
+        )
+
 
 def configure(baseurl, username, password, ssl_verify=True):
     """
