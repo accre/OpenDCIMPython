@@ -7,31 +7,37 @@ from textwrap import dedent
 import pytest
 
 from dcim.util import (
-    expand_brackets,
+    expand_hostlist,
+    expand_numlist,
     draw_rack,
     normalize_label,
     DHCPDHostParser,
 )
 
-
-class TestBracketExpand:
+class TestHostlistExpand:
     """
-    Tests for the expand_brackets function
+    Tests for the expand_hostlist and numlist functions
+
+    Taken from https://github.com/appeltel/slurmlint
     """
-    def test_no_brackets(self):
-        assert expand_brackets('foobaz') == ['foobaz']
+    def test_expand_numlist(self):
+        expected = [
+            '05', '06', '07', '009', '010', '011', '012', '013', '04', '4'
+        ]
+        assert expand_numlist('05-07,009-13,04,4') == expected
 
-    def test_invalid_brackets(self):
-        assert expand_brackets('foo[bar123]') == ['foo[bar123]']
+        expected = ['5', '123', '5017', '5018', '5019']
+        assert expand_numlist('5,123,5017-5019') == expected
 
-    def test_valid_range(self):
-        assert expand_brackets('qu[1-3]ux') == ['qu1ux', 'qu2ux', 'qu3ux']
 
-    def test_single_range(self):
-        assert expand_brackets('foo[107-107]') == ['foo107']
+    def test_expand_hostlist(self):
+        expected = [
+            'ng032', 'cn304', 'cn305', 'cn306', 'cn308', 'gpu0012', 'gpu0013',
+            'gpu0014', 'gpu0015', 'gpu0022', 'gpu0023', 'gpu0024', 'gpu0025'
+        ]
+        result = expand_hostlist('ng032,cn[304-306,308],gpu00[1-2][2-5]')
+        assert result == expected
 
-    def test_null_range(self):
-        assert expand_brackets('foo[9-7]') == []
 
 
 class TestDrawRack:

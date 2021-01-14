@@ -6,7 +6,7 @@ import sys
 
 from dcim.client import DCIMClient
 from dcim.errors import DCIMNotFoundError, DCIMAuthenticationError
-from dcim.util import expand_brackets
+from dcim.util import expand_hostlist
 from dcim.__version__ import __version__
 
 
@@ -39,7 +39,7 @@ def locate(args):
         devices = [args.device]
         identifier = 'SerialNo'
     else:
-        devices = expand_brackets(args.device)
+        devices = expand_hostlist(args.device)
         identifier = 'Label'
 
     error_count = 0
@@ -76,7 +76,7 @@ def model(args):
     After printing, the function exits with return code 0 if all devices
     were located or 1 otherwise.
     """
-    devices = expand_brackets(args.device)
+    devices = expand_hostlist(args.device)
     error_count = 0
     client = DCIMClient(caching=True)
 
@@ -93,6 +93,51 @@ def model(args):
         sys.exit(1)
     else:
         sys.exit(0)
+
+
+def status(args):
+    """
+    Prints the status and owner of the specified device.
+
+    For devices labeled with consecutive numbers, i.e. node21, node22,
+    node23, the command can be invoked with a range in brackets
+    as ``dcim model node[21-23]`` and will print information about all
+    specified devices.
+
+    After printing, the function exits with return code 0 if all devices
+    were located or 1 otherwise.
+    """
+    devices = expand_hostlist(args.device)
+    error_count = 0
+    client = DCIMClient(caching=True)
+
+    for device in devices:
+        try:
+            result = client.status(device)
+            print('{}: status {}, owner {}'.format(device, result['status'],
+                    result['owner']))
+        except DCIMNotFoundError:
+            print('Device label {} was not found.'.format(device))
+            error_count += 1
+
+    if error_count:
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
+
+def relabel(args):
+    """
+    Relabels a device with current label "device" with label "newlabel"
+    """
+    client = DCIMClient(caching=True)
+    try:
+        result = client.relabel_device(args.device, args.newlabel)
+    except DCIMNotFoundError:
+        print('Device label {} was not found.'.format(device))
+        sys.exit(1)
+    sys.exit(0)
+
 
 def showrack(args):
     """
@@ -139,6 +184,15 @@ def main():
     parser_model = subparsers.add_parser('model', help=model.__doc__)
     parser_model.add_argument('device', type=str)
     parser_model.set_defaults(func=model)
+
+    parser_status = subparsers.add_parser('status', help=status.__doc__)
+    parser_status.add_argument('device', type=str)
+    parser_status.set_defaults(func=status)
+
+    parser_relabel = subparsers.add_parser('relabel', help=relabel.__doc__)
+    parser_relabel.add_argument('device', type=str)
+    parser_relabel.add_argument('newlabel', type=str)
+    parser_relabel.set_defaults(func=relabel)
 
     parser_showrack = subparsers.add_parser('showrack', help=showrack.__doc__)
     parser_showrack.add_argument('location', type=str)

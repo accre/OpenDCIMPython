@@ -62,6 +62,10 @@ class DCIMClient(object):
             )
         return resp
 
+
+    def _drop_cache(self):
+        self.cache = {}
+
     def _get(self, path, **kwargs):
         """
         Perform a GET request with the given path or return result already
@@ -203,7 +207,7 @@ class DCIMClient(object):
 
         :returns: Information about all devices in the cabinet
         :rtype: list(dict)
-        """ 
+        """
         cabinet = self.get_cabinet(location)
         cabinet_id = cabinet['CabinetID']
 
@@ -302,6 +306,50 @@ class DCIMClient(object):
             'model': template_info['Model'],
             'serial': serial
         }
+
+    def status(self, device, dev_info=None):
+        """
+        Return a dict containing the status and departmental owner
+        of the device given by label.
+
+        :param str device: label of the device to query
+        :param dict dev_info: Device information already retrieved from
+            the OpenDCIM. If None, the information will be fetched.
+
+        :returns: status and owner for the device
+        :rtype: dict
+        """
+        if dev_info is None:
+            dev_info = self.get_device(device)
+
+        resp = self._get('api/v1/department')
+        depts = {
+            int(m['DeptID']): m['Name']
+            for m in resp.json()['department']
+        }
+        depts[0] = 'Unassigned'
+
+        return {
+            'status': dev_info['Status'],
+            'owner': depts[dev_info['Owner']]
+        }
+
+
+    def relabel_device(self, old_label, new_label):
+        """
+        Change the label of a device identified by its old label.
+        This function will drop the cache as devices will be changed.
+
+        :param str old_label: Current label of the device to be relabeled
+        :param str new_label: New label for the device
+        """
+        did = self.get_device(old_label)['DeviceID']
+        self._drop_cache()
+        self._request(
+            'POST',
+            'api/v1/device/{}'.format(did),
+            data={'Label': new_label}
+        )
 
 
 def configure(baseurl, username, password, ssl_verify=True):

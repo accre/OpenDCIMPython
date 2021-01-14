@@ -5,25 +5,144 @@ import re
 import string
 
 
-BRACKETRANGE_RE = re.compile(r"\[([0-9]+-[0-9]+)\]")
+RE_ISNUM = re.compile('[0-9]+')
+RE_NEXTBRACKET = re.compile('([^[]*)\[([^]]*)\](.*)')
+
 VALID_LABEL_RE = re.compile(r"^[a-z0-9-]*$")
 
 
-def expand_brackets(input_string):
+def expand_hostlist(hostlist, max_depth=20):
     """
-    Take a string of the form "node[1-12]" and return a list of strings
-    of the form ["node1", "node2", ..., "node12"]. If there is not a valid
-    bracket range, return a list containing only the input string.
+    Given a slurm-style list of hosts, expand and
+    return individual hostnames.
+
+    Copied from https://github.com/appeltel/slurmlint
+
+    :param str hostlist: slurm-style host list
+    :param int max_depth: maximum number of brackets in an entry
+    :returns: list of hostnames
+    :rtype: list(str)
     """
-    match = BRACKETRANGE_RE.search(input_string)
-    if match is None:
-        return [input_string]
+    result = _split_outside_brackets(hostlist, ',')
+    depth = 0
+    while depth < max_depth:
+        if not any(host.endswith(']') for host in result):
+            return result
+        depth += 1
 
-    start, end = [int(n) for n in match.group(1).split('-')]
-    prefix = input_string.split('[')[0]
-    suffix = input_string.split(']')[-1]
+        new_result = []
+        for item in result:
+            if not item.endswith(']'):
+                new_result.append(item)
+            else:
+                new_result.extend(_expand_next_bracket(item))
 
-    return ['{}{}{}'.format(prefix, x, suffix) for x in range(start, end+1)]
+        result = new_result
+
+    raise ValueError('Too many brackets') 
+
+
+def _split_outside_brackets(raw, splitchar):
+    """
+    Split a string on a given character only when the
+    character is outside brackets
+    Nested brackets are right out
+
+    Copied from https://github.com/appeltel/slurmlint
+    """
+    result = []
+    word = ''
+    in_brackets = False
+    for char in raw:
+        if char == '[' and not in_brackets:
+            word = word + char
+            in_brackets = True
+        elif char == '[' and in_brackets:
+            raise ValueError('Nested brackets are right out')
+        elif char == ']' and in_brackets:
+            word = word + char
+            in_brackets = False
+        elif char == ']' and not in_brackets:
+            raise ValueError('Unmatched end-bracket')
+        elif not in_brackets and char == splitchar and word:
+            result.append(word)
+            word = ''
+        elif not in_brackets and char == splitchar and not word:
+            raise ValueError('Missing item between separator')
+        else:
+            word = word + char
+    if not word:
+        raise ValueError('Missing item after separator')
+        
+    result.append(word)
+    return result
+
+
+def _expand_next_bracket(hostlist):
+    """
+    Take a hostlist and expand the next set of brackets
+    returning a list of either hosts or hostlists if
+    there are multiple brackets.
+
+    Copied from https://github.com/appeltel/slurmlint
+    """
+    if not hostlist.endswith(']'):
+        raise ValueError(
+            'Invalid host list, not ending in bracket'
+        )
+    match = RE_NEXTBRACKET.match(hostlist)
+    if not match:
+        raise ValueError('Invalid brackets in host list')
+    prefix = match.group(1)
+    numlist = match.group(2)
+    suffix = match.group(3)
+    return [prefix + num + suffix for num in expand_numlist(numlist)] 
+
+
+def expand_numlist(raw):
+    """
+    Expand a comma-delimited list of numbers and/or numeric ranges
+
+    Copied from https://github.com/appeltel/slurmlint
+
+    :param str raw: String containing list of numbers to be expanded
+    :returns: List of expanded numbers
+    :rtype: list(str)
+    """
+    result = []
+    for item in raw.split(','):
+        if not '-' in item:
+            if not RE_ISNUM.match(item):
+                raise ValueError('Invalid numeric value')
+            result.append(item)
+            continue
+
+        vals = item.split('-')
+        if not len(vals) == 2:
+            raise ValueError('Invalid numeric range')
+        result.extend(_expand_numrange(vals[0], vals[1]))
+    return result
+
+
+def _expand_numrange(first, last):
+    """
+    Expand a range of numbers that may be zero-prefixed into a list
+
+    Copied from https://github.com/appeltel/slurmlint
+    """
+    if not RE_ISNUM.match(first) or not RE_ISNUM.match(last):
+        raise ValueError('Invalid numeric value')
+    if int(last) < int(first):
+        raise ValueError('Invalid range')
+
+    fixed = first.startswith('0')
+    if fixed:
+        return [
+            str(val).zfill(len(first))
+            for val in range(int(first), int(last) + 1)
+        ]
+
+    return [str(val) for val in range(int(first), int(last) + 1)]
 
 
 def draw_rack(
